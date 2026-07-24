@@ -10,20 +10,20 @@ pipeline {
 
         stage('Stop Old Containers') {
             steps {
-                sh 'docker compose down --rmi local || true'
+                sh 'docker-compose down --rmi local || true'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'docker compose up --build -d'
+                sh 'docker-compose up --build -d'
             }
         }
 
         stage('Health Check') {
             steps {
                 sleep(time: 10, unit: 'SECONDS')
-                sh 'docker compose ps'
+                sh 'docker-compose ps'
             }
         }
     }
@@ -34,7 +34,7 @@ pipeline {
         }
         failure {
             echo 'Deployment failed'
-            sh 'docker compose logs app'
+            sh 'docker-compose logs app'
         }
     }
 }
