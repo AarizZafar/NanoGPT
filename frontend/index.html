@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NanoGPT — Training Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue-950: #0a1628;
+    --blue-900: #0f2044;
+    --blue-700: #1a4b8c;
+    --blue-500: #2563eb;
+    --blue-400: #3b82f6;
+    --blue-200: #bfdbfe;
+    --blue-50:  #eff6ff;
+    --white:    #ffffff;
+    --gray-50:  #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --green:    #10b981;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius:   8px;
+    --shadow:   0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ─────────────────────────────────── */
+  header {
+    background: var(--blue-950);
+    border-bottom: 1px solid var(--blue-900);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -.2px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--blue-500);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: #fff;
+  }
+  .logo span { color: var(--blue-400); }
+  #status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-400);
+    font-family: var(--font-mono);
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--gray-400);
+    transition: background .3s;
+  }
+  .dot.ready    { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.training { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.4 } }
+
+  /* ── Layout ─────────────────────────────────── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 24px 32px;
+    gap: 20px;
+  }
+
+  /* ── Cards ──────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card-header {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--gray-600);
+  }
+  .card-body { padding: 16px 18px; }
+
+  /* ── Left panel ─────────────────────────────── */
+  .left-panel {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius);
+    padding: 22px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--blue-400); background: var(--blue-50); }
+  .upload-zone.done { border-color: var(--green); border-style: solid; }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+  .upload-label { font-size: 13px; color: var(--gray-600); line-height: 1.5; }
+  .upload-label strong { color: var(--blue-500); cursor: pointer; }
+  #file-input { display: none; }
+  #file-meta { font-size: 11px; color: var(--gray-400); margin-top: 6px; font-family: var(--font-mono); }
+
+  /* Hyperparams */
+  .param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .param-item { display: flex; flex-direction: column; gap: 4px; }
+  .param-item.full { grid-column: 1 / -1; }
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-600);
+    letter-spacing: .03em;
+  }
+  input[type="number"], input[type="range"] {
+    width: 100%;
+    height: 34px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 0 10px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--gray-800);
+    background: var(--gray-50);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type="number"]:focus { border-color: var(--blue-400); background: #fff; }
+  input[type="range"] {
+    padding: 0;
+    height: 20px;
+    accent-color: var(--blue-500);
+    cursor: pointer;
+  }
+  .range-val {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--blue-500);
+    text-align: right;
+  }
+
+  /* Validation UI */
+  #cross-field-error {
+    display: none;
+    grid-column: 1 / -1;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #ef4444;
+    margin-top: -2px;
+  }
+  .param-hint {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--gray-400);
+    margin-top: 10px;
+  }
+
+  /* Train button */
+  #btn-train {
+    width: 100%;
+    height: 42px;
+    background: var(--blue-500);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    letter-spacing: .02em;
+    transition: background .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  #btn-train:hover:not(:disabled) { background: var(--blue-700); }
+  #btn-train:active:not(:disabled) { transform: scale(.98); }
+  #btn-train:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+
+  /* ── Right panel ────────────────────────────── */
+  .right-panel {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Chart */
+  .chart-wrap {
+    position: relative;
+    height: 260px;
+    padding: 4px 0 0;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .stat {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-100);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-400); }
+  .stat-val {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--gray-800);
+    margin-top: 2px;
+    transition: color .3s;
+  }
+  .stat-val.updated { color: var(--blue-500); }
+
+  /* Bottom row */
+  .bottom-row {
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Loss log */
+  #loss-log {
+    height: 220px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--gray-600);
+    padding: 4px 2px;
+  }
+  #loss-log::-webkit-scrollbar { width: 4px; }
+  #loss-log::-webkit-scrollbar-track { background: transparent; }
+  #loss-log::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+  .log-entry { display: flex; gap: 10px; align-items: baseline; }
+  .log-epoch { color: var(--blue-400); min-width: 60px; }
+  .log-train { color: var(--gray-800); }
+  .log-val   { color: var(--gray-400); }
+
+  /* Generated text */
+  #gen-output {
+    height: 220px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.75;
+    color: var(--gray-700);
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 4px 2px;
+  }
+  #gen-output::-webkit-scrollbar { width: 4px; }
+  #gen-output::-webkit-scrollbar-track { background: transparent; }
+  #gen-output::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--gray-400);
+    font-size: 12px;
+    gap: 6px;
+    font-family: var(--font-sans);
+  }
+  .empty-icon { font-size: 22px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+  }
+  .badge-blue  { background: var(--blue-50);  color: var(--blue-500);  border: 1px solid var(--blue-200); }
+  .badge-green { background: #ecfdf5; color: var(--green); border: 1px solid #6ee7b7; }
+
+  /* ── Responsive ─────────────────────────────── */
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .left-panel { grid-column: 1; grid-row: auto; }
+    .right-panel { grid-column: 1; }
+    .bottom-row { grid-column: 1; grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">G</div>
+    Nano<span>GPT</span> &nbsp;Training Studio
+  </div>
+  <div id="status-badge">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">idle</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left-panel">
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Dataset</span>
+        <span id="vocab-badge" class="badge badge-blue" style="display:none"></span>
+      </div>
+      <div class="card-body">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📄</div>
+          <div class="upload-label">
+            Drop your <strong onclick="document.getElementById('file-input').click()">text.txt</strong> here<br>
+            or click to browse
+          </div>
+          <div id="file-meta"></div>
+        </div>
+        <input type="file" id="file-input" accept=".txt"/>
+      </div>
+    </div>
+
+    <!-- Hyperparams -->
+    <div class="card" style="flex:1">
+      <div class="card-header"><span class="card-title">Hyperparameters</span></div>
+      <div class="card-body">
+        <div class="param-grid">
+
+          <div class="param-item">
+            <label>Block Size</label>
+            <input type="number" id="p-block_size" value="32" min="8" max="512"/>
+          </div>
+          <div class="param-item">
+            <label>Batch Size</label>
+            <input type="number" id="p-batch_size" value="32" min="4" max="256"/>
+          </div>
+          <div class="param-item">
+            <label>Embedding Dim</label>
+            <input type="number" id="p-n_embd" value="64" min="16" max="512"/>
+          </div>
+          <div class="param-item">
+            <label>Heads</label>
+            <input type="number" id="p-n_head" value="4" min="1" max="16"/>
+          </div>
+
+          <div id="cross-field-error">Embedding Dim must be divisible by Heads</div>
+
+          <div class="param-item">
+            <label>Layers</label>
+            <input type="number" id="p-n_layer" value="4" min="1" max="12"/>
+          </div>
+          <div class="param-item">
+            <label>Max Iters</label>
+            <input type="number" id="p-max_iters" value="5000" min="100" max="100000"/>
+          </div>
+          <div class="param-item">
+            <label>Eval Interval</label>
+            <input type="number" id="p-eval_interval" value="200" min="50" max="1000"/>
+          </div>
+          <div class="param-item">
+            <label>Generate Tokens</label>
+            <input type="number" id="p-max_new_tokens" value="300" min="50" max="2000"/>
+          </div>
+
+          <div class="param-item full">
+            <label>Learning Rate — <span class="range-val" id="lr-val">3e-3</span></label>
+            <input type="range" id="p-learning_rate" min="-5" max="-1" step="0.25" value="-2.5"
+                   oninput="document.getElementById('lr-val').textContent = Math.pow(10, this.value).toExponential(1)"/>
+          </div>
+          <div class="param-item full">
+            <label>Dropout — <span class="range-val" id="do-val">0.2</span></label>
+            <input type="range" id="p-dropout" min="0" max="0.5" step="0.05" value="0.2"
+                   oninput="document.getElementById('do-val').textContent = parseFloat(this.value).toFixed(2)"/>
+          </div>
+
+        </div>
+        <p class="param-hint">ⓘ&nbsp; Embedding Dim must be divisible by Heads</p>
+        <div style="margin-top:10px">
+          <button id="btn-train" onclick="startTraining()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Start Training
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Training Loss</span>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--gray-400)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:18px;height:2px;background:var(--blue-500)"></span>Train</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:18px;height:2px;background:var(--blue-200);border-top:2px dashed var(--blue-200)"></span>Val</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="stats-row" style="margin-bottom:14px">
+          <div class="stat">
+            <div class="stat-label">Epoch</div>
+            <div class="stat-val" id="s-epoch">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Train Loss</div>
+            <div class="stat-val" id="s-train">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Val Loss</div>
+            <div class="stat-val" id="s-val">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Progress</div>
+            <div class="stat-val" id="s-prog">—</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="loss-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BOTTOM ROW ── -->
+  <div class="bottom-row">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Loss Log</span>
+        <span id="log-count" class="badge badge-blue">0 entries</span>
+      </div>
+      <div class="card-body" style="padding:10px 14px">
+        <div id="loss-log">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            Loss events will appear here every eval interval
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Generated Text</span>
+        <span id="gen-badge" class="badge badge-green" style="display:none">live</span>
+      </div>
+      <div class="card-body" style="padding:10px 14px">
+        <div id="gen-output">
+          <div class="empty-state">
+            <div class="empty-icon">✍️</div>
+            Model output will stream here during training
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+let ws            = null;
+let chart         = null;
+let logCount      = 0;
+let maxIters      = 5000;
+let fileUploaded  = false;
+
+// ── Chart setup ────────────────────────────────
+function initChart() {
+  const ctx = document.getElementById('loss-chart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Train',
+          data: [],
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#2563eb',
+          tension: 0.35,
+          fill: true,
+        },
+        {
+          label: 'Val',
+          data: [],
+          borderColor: '#bfdbfe',
+          borderWidth: 2,
+          borderDash: [5, 4],
+          pointRadius: 3,
+          pointBackgroundColor: '#bfdbfe',
+          tension: 0.35,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1628',
+          titleColor: '#94a3b8',
+          bodyColor: '#fff',
+          padding: 10,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
+        },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ── File upload ────────────────────────────────
+const zone  = document.getElementById('upload-zone');
+const input = document.getElementById('file-input');
+
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+zone.addEventListener('click', () => input.click());
+input.addEventListener('change', () => handleFile(input.files[0]));
+
+async function handleFile(file) {
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  const res  = await fetch('/api/upload', { method: 'POST', body: form });
+  if (!res.ok) { alert((await res.json()).detail); return; }
+  const data = await res.json();
+  zone.classList.add('done');
+  document.getElementById('file-meta').textContent = `${file.name} · ${(file.size/1024).toFixed(1)} KB`;
+  const vb = document.getElementById('vocab-badge');
+  vb.textContent = `vocab ${data.vocab_size}`;
+  vb.style.display = 'inline-block';
+  fileUploaded = true;
+  updateTrainButton();
+}
+
+// ── Helpers ────────────────────────────────────
+// Clamps a value between min and max so Pydantic validation never fails
+function clamp(val, min, max) {
+  return Math.min(Math.max(val, min), max);
+}
+
+// Formats a FastAPI 422 detail array into a readable string
+function formatError(detail) {
+  if (Array.isArray(detail)) {
+    return detail.map(d => `• ${d.loc.at(-1)}: ${d.msg}`).join('\n');
+  }
+  return String(detail);   // plain string errors (400s) pass straight through
+}
+
+// ── Training ───────────────────────────────────
+async function startTraining() {
+  // Read and clamp every param to match the Pydantic schema bounds exactly,
+  // so we can never send a value FastAPI will reject with a 422.
+  const params = {
+    block_size:     clamp(+document.getElementById('p-block_size').value,     8,      512),
+    batch_size:     clamp(+document.getElementById('p-batch_size').value,     4,      256),
+    n_embd:         clamp(+document.getElementById('p-n_embd').value,         16,     512),
+    n_head:         clamp(+document.getElementById('p-n_head').value,         1,      16),
+    n_layer:        clamp(+document.getElementById('p-n_layer').value,        1,      12),
+    max_iters:      clamp(+document.getElementById('p-max_iters').value,      100,    100000),
+    eval_interval:  clamp(+document.getElementById('p-eval_interval').value,  50,     1000),
+    max_new_tokens: clamp(+document.getElementById('p-max_new_tokens').value, 50,     2000),
+    learning_rate:  Math.pow(10, +document.getElementById('p-learning_rate').value),
+    dropout:        +document.getElementById('p-dropout').value,
+  };
+  maxIters = params.max_iters;
+
+  // reset UI
+  chart.data.labels = [];
+  chart.data.datasets[0].data = [];
+  chart.data.datasets[1].data = [];
+  chart.update();
+  logCount = 0;
+  document.getElementById('loss-log').innerHTML = '';
+  document.getElementById('gen-output').innerHTML = '';
+  document.getElementById('log-count').textContent = '0 entries';
+
+  const res = await fetch('/api/train', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    // Fix: detail is an array of objects on 422 — format it before alert()
+    const err = await res.json();
+    alert(formatError(err.detail));
+    return;
+  }
+
+  setStatus('training');
+  document.getElementById('btn-train').disabled = true;
+  connectWS();
+}
+
+// ── WebSocket ──────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/api/ws/loss`);
+
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'loss')  onLoss(msg);
+    if (msg.type === 'text')  onText(msg.text);
+    if (msg.type === 'done')  onDone();
+  };
+  ws.onclose = () => { if (document.getElementById('status-text').textContent === 'training') setStatus('idle'); };
+}
+
+function onLoss({ epoch, train_loss, val_loss }) {
+  // chart
+  chart.data.labels.push(epoch);
+  chart.data.datasets[0].data.push(train_loss);
+  chart.data.datasets[1].data.push(val_loss);
+  chart.update('none');
+
+  // stats
+  flash('s-epoch', epoch);
+  flash('s-train', train_loss.toFixed(4));
+  flash('s-val',   val_loss.toFixed(4));
+  flash('s-prog',  `${((epoch / maxIters) * 100).toFixed(1)}%`);
+
+  // log
+  const log = document.getElementById('loss-log');
+  const row = document.createElement('div');
+  row.className = 'log-entry';
+  row.innerHTML = `<span class="log-epoch">step ${String(epoch).padStart(5,' ')}</span>
+                   <span class="log-train">train ${train_loss.toFixed(4)}</span>
+                   <span class="log-val">· val ${val_loss.toFixed(4)}</span>`;
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+  logCount++;
+  document.getElementById('log-count').textContent = `${logCount} entries`;
+}
+
+function onText(text) {
+  const out = document.getElementById('gen-output');
+  out.textContent = text;
+  out.scrollTop   = 0;
+  document.getElementById('gen-badge').style.display = 'inline-block';
+}
+
+function onDone() {
+  setStatus('ready');
+  updateTrainButton();
+  document.getElementById('gen-badge').textContent = 'done';
+  if (ws) ws.close();
+}
+
+function setStatus(s) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className = `dot ${s}`;
+  text.textContent = s;
+}
+
+function flash(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = val;
+  el.classList.add('updated');
+  setTimeout(() => el.classList.remove('updated'), 600);
+}
+
+// ── Validation ─────────────────────────────────
+function isInputInRange(inp) {
+  const val = parseFloat(inp.value);
+  const min = parseFloat(inp.min);
+  const max = parseFloat(inp.max);
+  return !isNaN(val) && val >= min && val <= max;
+}
+
+function markInvalid(inp) {
+  inp.style.borderColor = '#ef4444';
+  inp.style.background  = '#fff5f5';
+}
+
+function markValid(inp) {
+  inp.style.borderColor = 'var(--gray-200)';
+  inp.style.background  = 'var(--gray-50)';
+}
+
+// Checks the n_embd ÷ n_head cross-field rule.
+// Only fires when both inputs are individually in-range.
+function checkCrossField() {
+  const nEmbd   = document.getElementById('p-n_embd');
+  const nHead   = document.getElementById('p-n_head');
+  const errLine = document.getElementById('cross-field-error');
+
+  // If either field has a range error, suppress the cross-field message
+  // — the individual red border already communicates the problem.
+  if (!isInputInRange(nEmbd) || !isInputInRange(nHead)) {
+    errLine.style.display = 'none';
+    return true;
+  }
+
+  const ne = parseInt(nEmbd.value, 10);
+  const nh = parseInt(nHead.value, 10);
+  const crossInvalid = ne % nh !== 0;
+
+  if (crossInvalid) {
+    markInvalid(nEmbd);
+    markInvalid(nHead);
+    errLine.style.display = 'block';
+  } else {
+    errLine.style.display = 'none';
+    markValid(nEmbd);
+    markValid(nHead);
+  }
+  return !crossInvalid;
+}
+
+// Central gate: disables the train button when any condition is violated.
+function updateTrainButton() {
+  let anyRangeInvalid = false;
+  document.querySelectorAll('input[type="number"]').forEach(inp => {
+    if (!isInputInRange(inp)) anyRangeInvalid = true;
+  });
+
+  const nEmbd = document.getElementById('p-n_embd');
+  const nHead = document.getElementById('p-n_head');
+  let crossInvalid = false;
+  if (isInputInRange(nEmbd) && isInputInRange(nHead)) {
+    crossInvalid = parseInt(nEmbd.value, 10) % parseInt(nHead.value, 10) !== 0;
+  }
+
+  document.getElementById('btn-train').disabled =
+    !fileUploaded || anyRangeInvalid || crossInvalid;
+}
+
+// ── Init ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  document.getElementById('btn-train').disabled = true;
+
+  // Per-input range validation on input + blur
+  document.querySelectorAll('input[type="number"]').forEach(inp => {
+    const isCrossField = inp.id === 'p-n_embd' || inp.id === 'p-n_head';
+
+    function validate() {
+      // 1. Individual range check
+      if (isInputInRange(inp)) {
+        markValid(inp);
+      } else {
+        markInvalid(inp);
+      }
+      // 2. Cross-field check (may override individual state for these two)
+      if (isCrossField) checkCrossField();
+      // 3. Sync button
+      updateTrainButton();
+    }
+
+    inp.addEventListener('input', validate);
+    inp.addEventListener('blur',  validate);
+  });
+});
+</script>
+</body>
+</html>
