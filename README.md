@@ -1,22 +1,22 @@
-## Running the Application
+## Running the Application locally
 
 ### Start (detached — terminal can be closed)
 ```bash
 docker compose up --build -d
 ```
 
-### View logs / print statements
+### View logs / print statements separate terminal
 ```bash
 docker compose logs -f app
 ```
-`-f` follows live. `Ctrl+C` to exit — container keeps running.
+`-f` follows live logs. Press `Ctrl+C` to exit - the container keeps running.
 
 ### View nginx logs
 ```bash
 docker compose logs nginx
 ```
 
-### Stop (keeps images)
+### Stop the container (keeps images)
 ```bash
 docker compose stop
 ```
@@ -26,24 +26,31 @@ docker compose stop
 docker compose start
 ```
 
-### Delete this project's containers + images + network
+### Delete this project's containers, images, and network
 ```bash
 docker compose down --rmi local
 ```
 
-run locally 
+### Run locally (without Docker)
+```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-down — stops + removes containers and network. Images stay on disk.
+### Access the app
+Open [http://localhost/](http://localhost/) in your web browser.
 
-down --rmi local — same as above + also deletes the images built from your Dockerfile. Frees disk space but next up --build downloads/builds everything again.
-
-
-http://localhost/ on the web browser
-
-if need to do re build 
+### Rebuilding
+If you need to rebuild after making changes:
+```bash
 docker compose down
 docker compose up --build -d
+```
 
-> `down` = stop + remove containers and network  
-> `--rmi local` = also removes images built from this project's Dockerfile only, leaves all other Docker images untouched
+---
+
+### Command reference
+
+| Command | Effect |
+|---|---|
+| `down` | Stops and removes containers and network. Images stay on disk. |
+| `down --rmi local` | Same as above, plus removes images built from this project's Dockerfile only. Frees disk space, but the next `up --build` will download/build everything again. Other Docker images are left untouched. |
