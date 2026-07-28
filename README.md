@@ -104,7 +104,7 @@ Open `http://localhost`
 
 ## Deployment Diagram
 
-<!-- Paste your end-to-end deployment diagram image here -->
+![Architecture Diagram](images/End_end_architecture_diagram.jpg)
 
 ---
 
