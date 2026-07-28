@@ -13,6 +13,12 @@ The UI lets you upload any `.txt` corpus, tune hyperparameters, watch the loss c
 
 ---
 
+## Deployment Diagram
+
+![Architecture Diagram](images/End_end_architecture_diagram.jpg)
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -99,14 +105,6 @@ Open `http://localhost:8000`
 docker compose up --build -d
 ```
 Open `http://localhost`
-
----
-
-## Deployment Diagram
-
-![Architecture Diagram](images/End_end_architecture_diagram.jpg)
-
----
 
 ## How It Works
 
