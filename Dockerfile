@@ -11,6 +11,7 @@ RUN uv pip install --system -r pyproject.toml
 
 COPY app/ ./app/
 COPY frontend/ ./frontend/
+COPY training_data_corpus/ ./training_data_corpus/
 
 EXPOSE 8000
 

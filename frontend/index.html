@@ -43,7 +43,6 @@
     flex-direction: column;
   }
 
-  /* ── Header ─────────────────────────────────── */
   header {
     background: var(--blue-950);
     border-bottom: 1px solid var(--blue-900);
@@ -77,6 +76,33 @@
     color: #fff;
   }
   .logo span { color: var(--blue-400); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .github-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-400);
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .github-link:hover {
+    color: var(--white);
+    border-color: rgba(255,255,255,.25);
+    background: rgba(255,255,255,.05);
+  }
+  .github-link svg { flex-shrink: 0; }
+
   #status-badge {
     display: flex;
     align-items: center;
@@ -96,13 +122,11 @@
   .dot.training { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.4 } }
 
-  /* ── Layout ─────────────────────────────────── */
   main {
     flex: 1;
     display: grid;
     grid-template-columns: 340px 1fr;
     grid-template-rows: auto 1fr;
-    gap: 0;
     max-width: 1400px;
     width: 100%;
     margin: 0 auto;
@@ -110,7 +134,6 @@
     gap: 20px;
   }
 
-  /* ── Cards ──────────────────────────────────── */
   .card {
     background: var(--white);
     border: 1px solid var(--gray-200);
@@ -133,7 +156,6 @@
   }
   .card-body { padding: 16px 18px; }
 
-  /* ── Left panel ─────────────────────────────── */
   .left-panel {
     grid-column: 1;
     grid-row: 1 / 3;
@@ -158,6 +180,59 @@
   .upload-label strong { color: var(--blue-500); cursor: pointer; }
   #file-input { display: none; }
   #file-meta { font-size: 11px; color: var(--gray-400); margin-top: 6px; font-family: var(--font-mono); }
+
+  /* Default datasets */
+  .dataset-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--gray-400);
+  }
+  .dataset-divider::before, .dataset-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-100);
+  }
+
+  .dataset-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .dataset-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--gray-50);
+  }
+  .dataset-item:hover { border-color: var(--blue-400); background: var(--blue-50); }
+  .dataset-item.selected { border-color: var(--green); background: #f0fdf4; }
+
+  .dataset-icon { font-size: 18px; flex-shrink: 0; }
+  .dataset-info { flex: 1; min-width: 0; }
+  .dataset-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-800);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dataset-size { font-size: 10px; color: var(--gray-400); font-family: var(--font-mono); margin-top: 1px; }
+  .dataset-check {
+    font-size: 14px;
+    color: var(--green);
+    display: none;
+  }
+  .dataset-item.selected .dataset-check { display: block; }
 
   /* Hyperparams */
   .param-grid {
@@ -200,7 +275,6 @@
     text-align: right;
   }
 
-  /* Validation UI */
   #cross-field-error {
     display: none;
     grid-column: 1 / -1;
@@ -216,7 +290,6 @@
     margin-top: 10px;
   }
 
-  /* Train button */
   #btn-train {
     width: 100%;
     height: 42px;
@@ -239,7 +312,6 @@
   #btn-train:active:not(:disabled) { transform: scale(.98); }
   #btn-train:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
 
-  /* ── Right panel ────────────────────────────── */
   .right-panel {
     grid-column: 2;
     grid-row: 1;
@@ -248,14 +320,12 @@
     gap: 16px;
   }
 
-  /* Chart */
   .chart-wrap {
     position: relative;
     height: 260px;
     padding: 4px 0 0;
   }
 
-  /* Stats row */
   .stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -278,7 +348,6 @@
   }
   .stat-val.updated { color: var(--blue-500); }
 
-  /* Bottom row */
   .bottom-row {
     grid-column: 2;
     grid-row: 2;
@@ -287,7 +356,6 @@
     gap: 16px;
   }
 
-  /* Loss log */
   #loss-log {
     height: 220px;
     overflow-y: auto;
@@ -305,7 +373,6 @@
   .log-train { color: var(--gray-800); }
   .log-val   { color: var(--gray-400); }
 
-  /* Generated text */
   #gen-output {
     height: 220px;
     overflow-y: auto;
@@ -346,7 +413,6 @@
   .badge-blue  { background: var(--blue-50);  color: var(--blue-500);  border: 1px solid var(--blue-200); }
   .badge-green { background: #ecfdf5; color: var(--green); border: 1px solid #6ee7b7; }
 
-  /* ── Responsive ─────────────────────────────── */
   @media (max-width: 900px) {
     main { grid-template-columns: 1fr; }
     .left-panel { grid-column: 1; grid-row: auto; }
@@ -362,24 +428,33 @@
     <div class="logo-icon">G</div>
     Nano<span>GPT</span> &nbsp;Training Studio
   </div>
-  <div id="status-badge">
-    <div class="dot" id="status-dot"></div>
-    <span id="status-text">idle</span>
+  <div class="header-right">
+    <a class="github-link" href="https://github.com/AarizZafar/NanoGPT" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      AarizZafar / NanoGPT
+    </a>
+    <div id="status-badge">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">idle</span>
+    </div>
   </div>
 </header>
 
 <main>
 
-  <!-- ── LEFT PANEL ── -->
   <div class="left-panel">
 
-    <!-- Upload -->
+    <!-- Dataset card -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">Dataset</span>
         <span id="vocab-badge" class="badge badge-blue" style="display:none"></span>
       </div>
       <div class="card-body">
+
+        <!-- Upload your own -->
         <div class="upload-zone" id="upload-zone">
           <div class="upload-icon">📄</div>
           <div class="upload-label">
@@ -389,6 +464,13 @@
           <div id="file-meta"></div>
         </div>
         <input type="file" id="file-input" accept=".txt"/>
+
+        <!-- Default datasets -->
+        <div class="dataset-divider">or train on a default dataset</div>
+        <div class="dataset-list" id="dataset-list">
+          <div style="font-size:11px;color:var(--gray-400);text-align:center;padding:8px 0">Loading...</div>
+        </div>
+
       </div>
     </div>
 
@@ -458,7 +540,7 @@
 
   </div>
 
-  <!-- ── RIGHT PANEL ── -->
+  <!-- RIGHT PANEL -->
   <div class="right-panel">
     <div class="card">
       <div class="card-header">
@@ -470,22 +552,10 @@
       </div>
       <div class="card-body">
         <div class="stats-row" style="margin-bottom:14px">
-          <div class="stat">
-            <div class="stat-label">Epoch</div>
-            <div class="stat-val" id="s-epoch">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Train Loss</div>
-            <div class="stat-val" id="s-train">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Val Loss</div>
-            <div class="stat-val" id="s-val">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Progress</div>
-            <div class="stat-val" id="s-prog">—</div>
-          </div>
+          <div class="stat"><div class="stat-label">Epoch</div><div class="stat-val" id="s-epoch">—</div></div>
+          <div class="stat"><div class="stat-label">Train Loss</div><div class="stat-val" id="s-train">—</div></div>
+          <div class="stat"><div class="stat-label">Val Loss</div><div class="stat-val" id="s-val">—</div></div>
+          <div class="stat"><div class="stat-label">Progress</div><div class="stat-val" id="s-prog">—</div></div>
         </div>
         <div class="chart-wrap">
           <canvas id="loss-chart"></canvas>
@@ -494,9 +564,8 @@
     </div>
   </div>
 
-  <!-- ── BOTTOM ROW ── -->
+  <!-- BOTTOM ROW -->
   <div class="bottom-row">
-
     <div class="card">
       <div class="card-header">
         <span class="card-title">Loss Log</span>
@@ -511,7 +580,6 @@
         </div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-header">
         <span class="card-title">Generated Text</span>
@@ -526,19 +594,85 @@
         </div>
       </div>
     </div>
-
   </div>
 
 </main>
 
 <script>
-let ws            = null;
-let chart         = null;
-let logCount      = 0;
-let maxIters      = 5000;
-let fileUploaded  = false;
+let ws           = null;
+let chart        = null;
+let logCount     = 0;
+let maxIters     = 5000;
+let fileUploaded = false;
 
-// ── Chart setup ────────────────────────────────
+const DATASET_ICONS = {
+  'shakes_spear.txt':         '📜',
+  'rich_dad_poor_dad.txt':    '💰',
+  'law_of_human_nature.txt':  '🧠',
+};
+
+function datasetIcon(name) {
+  return DATASET_ICONS[name] || '📚';
+}
+
+function friendlyName(filename) {
+  return filename
+    .replace('.txt', '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── Load default datasets ──────────────────────
+async function loadDatasets() {
+  const list = document.getElementById('dataset-list');
+  try {
+    const res  = await fetch('/api/datasets');
+    const data = await res.json();
+    if (!data.datasets.length) {
+      list.innerHTML = '<div style="font-size:11px;color:var(--gray-400);text-align:center;padding:8px 0">No default datasets found</div>';
+      return;
+    }
+    list.innerHTML = '';
+    data.datasets.forEach(ds => {
+      const item = document.createElement('div');
+      item.className = 'dataset-item';
+      item.dataset.filename = ds.name;
+      item.innerHTML = `
+        <div class="dataset-icon">${datasetIcon(ds.name)}</div>
+        <div class="dataset-info">
+          <div class="dataset-name">${friendlyName(ds.name)}</div>
+          <div class="dataset-size">${ds.size_kb} KB</div>
+        </div>
+        <div class="dataset-check">✓</div>
+      `;
+      item.addEventListener('click', () => selectDataset(item, ds.name));
+      list.appendChild(item);
+    });
+  } catch {
+    list.innerHTML = '<div style="font-size:11px;color:var(--gray-400);text-align:center;padding:8px 0">Could not load datasets</div>';
+  }
+}
+
+async function selectDataset(item, filename) {
+  document.querySelectorAll('.dataset-item').forEach(el => el.classList.remove('selected'));
+  item.classList.add('selected');
+
+  const res = await fetch(`/api/upload-default?filename=${encodeURIComponent(filename)}`, { method: 'POST' });
+  if (!res.ok) { alert('Failed to load dataset'); return; }
+  const data = await res.json();
+
+  const vb = document.getElementById('vocab-badge');
+  vb.textContent = `vocab ${data.vocab_size}`;
+  vb.style.display = 'inline-block';
+
+  document.getElementById('file-meta').textContent = '';
+  document.getElementById('upload-zone').classList.remove('done');
+
+  fileUploaded = true;
+  updateTrainButton();
+}
+
+// ── Chart ──────────────────────────────────────
 function initChart() {
   const ctx = document.getElementById('loss-chart').getContext('2d');
   chart = new Chart(ctx, {
@@ -546,28 +680,8 @@ function initChart() {
     data: {
       labels: [],
       datasets: [
-        {
-          label: 'Train',
-          data: [],
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37,99,235,.08)',
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: '#2563eb',
-          tension: 0.35,
-          fill: true,
-        },
-        {
-          label: 'Val',
-          data: [],
-          borderColor: '#bfdbfe',
-          borderWidth: 2,
-          borderDash: [5, 4],
-          pointRadius: 3,
-          pointBackgroundColor: '#bfdbfe',
-          tension: 0.35,
-          fill: false,
-        }
+        { label: 'Train', data: [], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.08)', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#2563eb', tension: 0.35, fill: true },
+        { label: 'Val',   data: [], borderColor: '#bfdbfe', borderWidth: 2, borderDash: [5,4], pointRadius: 3, pointBackgroundColor: '#bfdbfe', tension: 0.35, fill: false }
       ]
     },
     options: {
@@ -578,24 +692,13 @@ function initChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0a1628',
-          titleColor: '#94a3b8',
-          bodyColor: '#fff',
-          padding: 10,
-          callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`
-          }
+          backgroundColor: '#0a1628', titleColor: '#94a3b8', bodyColor: '#fff', padding: 10,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}` }
         }
       },
       scales: {
-        x: {
-          grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
-        },
-        y: {
-          grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
-        }
+        x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } } }
       }
     }
   });
@@ -613,6 +716,7 @@ input.addEventListener('change', () => handleFile(input.files[0]));
 
 async function handleFile(file) {
   if (!file) return;
+  document.querySelectorAll('.dataset-item').forEach(el => el.classList.remove('selected'));
   const form = new FormData();
   form.append('file', file);
   const res  = await fetch('/api/upload', { method: 'POST', body: form });
@@ -627,24 +731,15 @@ async function handleFile(file) {
   updateTrainButton();
 }
 
-// ── Helpers ────────────────────────────────────
-// Clamps a value between min and max so Pydantic validation never fails
-function clamp(val, min, max) {
-  return Math.min(Math.max(val, min), max);
-}
-
-// Formats a FastAPI 422 detail array into a readable string
-function formatError(detail) {
-  if (Array.isArray(detail)) {
-    return detail.map(d => `• ${d.loc.at(-1)}: ${d.msg}`).join('\n');
-  }
-  return String(detail);   // plain string errors (400s) pass straight through
-}
-
 // ── Training ───────────────────────────────────
+function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+function formatError(detail) {
+  if (Array.isArray(detail)) return detail.map(d => `• ${d.loc.at(-1)}: ${d.msg}`).join('\n');
+  return String(detail);
+}
+
 async function startTraining() {
-  // Read and clamp every param to match the Pydantic schema bounds exactly,
-  // so we can never send a value FastAPI will reject with a 422.
   const params = {
     block_size:     clamp(+document.getElementById('p-block_size').value,     8,      512),
     batch_size:     clamp(+document.getElementById('p-batch_size').value,     4,      256),
@@ -659,7 +754,6 @@ async function startTraining() {
   };
   maxIters = params.max_iters;
 
-  // reset UI
   chart.data.labels = [];
   chart.data.datasets[0].data = [];
   chart.data.datasets[1].data = [];
@@ -675,12 +769,7 @@ async function startTraining() {
     body: JSON.stringify(params),
   });
 
-  if (!res.ok) {
-    // Fix: detail is an array of objects on 422 — format it before alert()
-    const err = await res.json();
-    alert(formatError(err.detail));
-    return;
-  }
+  if (!res.ok) { const err = await res.json(); alert(formatError(err.detail)); return; }
 
   setStatus('training');
   document.getElementById('btn-train').disabled = true;
@@ -691,30 +780,24 @@ async function startTraining() {
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/api/ws/loss`);
-
   ws.onmessage = e => {
     const msg = JSON.parse(e.data);
-    if (msg.type === 'loss')  onLoss(msg);
-    if (msg.type === 'text')  onText(msg.text);
-    if (msg.type === 'done')  onDone();
+    if (msg.type === 'loss') onLoss(msg);
+    if (msg.type === 'text') onText(msg.text);
+    if (msg.type === 'done') onDone();
   };
   ws.onclose = () => { if (document.getElementById('status-text').textContent === 'training') setStatus('idle'); };
 }
 
 function onLoss({ epoch, train_loss, val_loss }) {
-  // chart
   chart.data.labels.push(epoch);
   chart.data.datasets[0].data.push(train_loss);
   chart.data.datasets[1].data.push(val_loss);
   chart.update('none');
-
-  // stats
   flash('s-epoch', epoch);
   flash('s-train', train_loss.toFixed(4));
   flash('s-val',   val_loss.toFixed(4));
   flash('s-prog',  `${((epoch / maxIters) * 100).toFixed(1)}%`);
-
-  // log
   const log = document.getElementById('loss-log');
   const row = document.createElement('div');
   row.className = 'log-entry';
@@ -730,7 +813,7 @@ function onLoss({ epoch, train_loss, val_loss }) {
 function onText(text) {
   const out = document.getElementById('gen-output');
   out.textContent = text;
-  out.scrollTop   = 0;
+  out.scrollTop = 0;
   document.getElementById('gen-badge').style.display = 'inline-block';
 }
 
@@ -742,10 +825,8 @@ function onDone() {
 }
 
 function setStatus(s) {
-  const dot  = document.getElementById('status-dot');
-  const text = document.getElementById('status-text');
-  dot.className = `dot ${s}`;
-  text.textContent = s;
+  document.getElementById('status-dot').className = `dot ${s}`;
+  document.getElementById('status-text').textContent = s;
 }
 
 function flash(id, val) {
@@ -758,91 +839,46 @@ function flash(id, val) {
 // ── Validation ─────────────────────────────────
 function isInputInRange(inp) {
   const val = parseFloat(inp.value);
-  const min = parseFloat(inp.min);
-  const max = parseFloat(inp.max);
-  return !isNaN(val) && val >= min && val <= max;
+  return !isNaN(val) && val >= parseFloat(inp.min) && val <= parseFloat(inp.max);
 }
+function markInvalid(inp) { inp.style.borderColor = '#ef4444'; inp.style.background = '#fff5f5'; }
+function markValid(inp)   { inp.style.borderColor = 'var(--gray-200)'; inp.style.background = 'var(--gray-50)'; }
 
-function markInvalid(inp) {
-  inp.style.borderColor = '#ef4444';
-  inp.style.background  = '#fff5f5';
-}
-
-function markValid(inp) {
-  inp.style.borderColor = 'var(--gray-200)';
-  inp.style.background  = 'var(--gray-50)';
-}
-
-// Checks the n_embd ÷ n_head cross-field rule.
-// Only fires when both inputs are individually in-range.
 function checkCrossField() {
-  const nEmbd   = document.getElementById('p-n_embd');
-  const nHead   = document.getElementById('p-n_head');
-  const errLine = document.getElementById('cross-field-error');
-
-  // If either field has a range error, suppress the cross-field message
-  // — the individual red border already communicates the problem.
-  if (!isInputInRange(nEmbd) || !isInputInRange(nHead)) {
-    errLine.style.display = 'none';
-    return true;
-  }
-
-  const ne = parseInt(nEmbd.value, 10);
-  const nh = parseInt(nHead.value, 10);
-  const crossInvalid = ne % nh !== 0;
-
-  if (crossInvalid) {
-    markInvalid(nEmbd);
-    markInvalid(nHead);
-    errLine.style.display = 'block';
-  } else {
-    errLine.style.display = 'none';
-    markValid(nEmbd);
-    markValid(nHead);
-  }
-  return !crossInvalid;
-}
-
-// Central gate: disables the train button when any condition is violated.
-function updateTrainButton() {
-  let anyRangeInvalid = false;
-  document.querySelectorAll('input[type="number"]').forEach(inp => {
-    if (!isInputInRange(inp)) anyRangeInvalid = true;
-  });
-
   const nEmbd = document.getElementById('p-n_embd');
   const nHead = document.getElementById('p-n_head');
-  let crossInvalid = false;
-  if (isInputInRange(nEmbd) && isInputInRange(nHead)) {
-    crossInvalid = parseInt(nEmbd.value, 10) % parseInt(nHead.value, 10) !== 0;
-  }
+  const errLine = document.getElementById('cross-field-error');
+  if (!isInputInRange(nEmbd) || !isInputInRange(nHead)) { errLine.style.display = 'none'; return true; }
+  const invalid = parseInt(nEmbd.value) % parseInt(nHead.value) !== 0;
+  if (invalid) { markInvalid(nEmbd); markInvalid(nHead); errLine.style.display = 'block'; }
+  else         { markValid(nEmbd);   markValid(nHead);   errLine.style.display = 'none'; }
+  return !invalid;
+}
 
-  document.getElementById('btn-train').disabled =
-    !fileUploaded || anyRangeInvalid || crossInvalid;
+function updateTrainButton() {
+  let anyInvalid = false;
+  document.querySelectorAll('input[type="number"]').forEach(inp => { if (!isInputInRange(inp)) anyInvalid = true; });
+  const nEmbd = document.getElementById('p-n_embd');
+  const nHead = document.getElementById('p-n_head');
+  const crossInvalid = isInputInRange(nEmbd) && isInputInRange(nHead)
+    ? parseInt(nEmbd.value) % parseInt(nHead.value) !== 0
+    : false;
+  document.getElementById('btn-train').disabled = !fileUploaded || anyInvalid || crossInvalid;
 }
 
 // ── Init ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
+  loadDatasets();
   document.getElementById('btn-train').disabled = true;
 
-  // Per-input range validation on input + blur
   document.querySelectorAll('input[type="number"]').forEach(inp => {
-    const isCrossField = inp.id === 'p-n_embd' || inp.id === 'p-n_head';
-
+    const isCross = inp.id === 'p-n_embd' || inp.id === 'p-n_head';
     function validate() {
-      // 1. Individual range check
-      if (isInputInRange(inp)) {
-        markValid(inp);
-      } else {
-        markInvalid(inp);
-      }
-      // 2. Cross-field check (may override individual state for these two)
-      if (isCrossField) checkCrossField();
-      // 3. Sync button
+      isInputInRange(inp) ? markValid(inp) : markInvalid(inp);
+      if (isCross) checkCrossField();
       updateTrainButton();
     }
-
     inp.addEventListener('input', validate);
     inp.addEventListener('blur',  validate);
   });
