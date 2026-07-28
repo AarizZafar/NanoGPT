@@ -10,8 +10,6 @@ NanoGPT implements the core Transformer architecture (multi-head self-attention,
 
 The UI lets you upload any `.txt` corpus, tune hyperparameters, watch the loss curve update live during training, and see the model generate text in real time — all from the browser.
 
----
-
 ## Deployment Diagram
 
 ![Architecture Diagram](images/End_end_architecture_diagram.jpg)
