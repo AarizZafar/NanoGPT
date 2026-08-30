@@ -16,5 +16,6 @@ notes/
 *.egg-info
 dist/
 build/
-uv.lock
 images/
+frontend/node_modules/
+frontend/dist/

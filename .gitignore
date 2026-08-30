@@ -4,3 +4,5 @@ __pycache__/
 *.pth
 .env
 input.txt
+frontend/node_modules/
+frontend/dist/

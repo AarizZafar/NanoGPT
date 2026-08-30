@@ -132,7 +132,7 @@ async def train(req:TrainRequest):                             # already running
             manager.broadcast({"type": "loss", "epoch": epoch, "train_loss": round(train_loss, 4), "val_loss": round(val_loss, 4)}),
             _loop,
         )
-        text = state.generator.generate(max_new_tokens=200)
+        text = state.generator.generate(max_new_tokens=req.max_new_tokens)
         asyncio.run_coroutine_threadsafe(
             manager.broadcast({"type": "text", "text": text}),
             _loop,
