@@ -156,6 +156,7 @@ function App() {
   const [dragging, setDragging] = useState(false);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const socketRef = useRef(null);
 
   useLossChart(canvasRef, points);
 
@@ -208,28 +209,55 @@ function App() {
     }
   }
 
+  function connectTrainingStream(attempt = 1) {
+    const socket = new WebSocket(websocketUrl('/ws/loss'));
+    let completed = false;
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      setError('');
+    };
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'loss') setPoints((current) => [...current, message]);
+      if (message.type === 'text') setGeneratedText(message.text);
+      if (message.type === 'done') {
+        completed = true;
+        setStatus('ready');
+        socketRef.current = null;
+        socket.close(1000, 'training complete');
+      }
+    };
+
+    socket.onerror = () => {
+      socket.close();
+    };
+
+    socket.onclose = () => {
+      if (completed) return;
+      if (socketRef.current !== socket) return;
+      setStatus((current) => {
+        if (current !== 'training') return current;
+        if (attempt < 3) {
+          window.setTimeout(() => connectTrainingStream(attempt + 1), 1000 * attempt);
+          return current;
+        }
+        setError('Training stream disconnected. Refresh the page and try again.');
+        return 'idle';
+      });
+    };
+  }
+
   async function startTraining() {
-    let socket;
     try {
       setError('');
       setPoints([]);
       setGeneratedText('');
       setStatus('training');
-
-      socket = new WebSocket(websocketUrl('/ws/loss'));
-      socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'loss') setPoints((current) => [...current, message]);
-        if (message.type === 'text') setGeneratedText(message.text);
-        if (message.type === 'done') {
-          setStatus('ready');
-          socket.close();
-        }
-      };
-      socket.onerror = () => setError('Training stream disconnected');
-      socket.onclose = () => {
-        setStatus((current) => (current === 'training' ? 'idle' : current));
-      };
+      const previousSocket = socketRef.current;
+      socketRef.current = null;
+      previousSocket?.close();
 
       await apiRequest('/train', {
         method: 'POST',
@@ -247,12 +275,23 @@ function App() {
           dropout: Number(params.dropout),
         }),
       });
+
+      connectTrainingStream();
     } catch (err) {
-      socket?.close();
+      const currentSocket = socketRef.current;
+      socketRef.current = null;
+      currentSocket?.close();
       setStatus('idle');
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    return () => {
+      socketRef.current?.close();
+      socketRef.current = null;
+    };
+  }, []);
 
   return (
     <div className="app-shell">
