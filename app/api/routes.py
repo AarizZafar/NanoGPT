@@ -32,6 +32,15 @@ _loop: asyncio.AbstractEventLoop = None  # reference to that event loop not the 
 
 CORPUS_DIR = Path("training_data_corpus")
 
+@router.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "training": state.training,
+        "has_model": state.model is not None,
+        "has_text": state.text is not None,
+    }
+
 @router.get("/datasets")
 async def list_datasets():
     if not CORPUS_DIR.exists():

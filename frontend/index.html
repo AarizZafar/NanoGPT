@@ -605,6 +605,32 @@ let logCount     = 0;
 let maxIters     = 5000;
 let fileUploaded = false;
 
+const DEFAULT_API_BASE_URL = 'https://cae-nanogpt-prod.happyisland-c2178764.eastus.azurecontainerapps.io';
+const API_BASE_URL = window.NANOGPT_API_URL || (
+  location.hostname === 'localhost' ||
+  location.hostname === '127.0.0.1' ||
+  location.hostname.endsWith('.azurecontainerapps.io')
+    ? ''
+    : DEFAULT_API_BASE_URL
+);
+
+function apiUrl(path) {
+  return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+}
+
+function wsUrl(path) {
+  if (!API_BASE_URL) {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${proto}://${location.host}${path}`;
+  }
+  const url = new URL(API_BASE_URL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = path;
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
 const DATASET_ICONS = {
   'shakes_spear.txt':         '📜',
   'rich_dad_poor_dad.txt':    '💰',
@@ -626,7 +652,7 @@ function friendlyName(filename) {
 async function loadDatasets() {
   const list = document.getElementById('dataset-list');
   try {
-    const res  = await fetch('/api/datasets');
+    const res  = await fetch(apiUrl('/api/datasets'));
     const data = await res.json();
     if (!data.datasets.length) {
       list.innerHTML = '<div style="font-size:11px;color:var(--gray-400);text-align:center;padding:8px 0">No default datasets found</div>';
@@ -657,7 +683,7 @@ async function selectDataset(item, filename) {
   document.querySelectorAll('.dataset-item').forEach(el => el.classList.remove('selected'));
   item.classList.add('selected');
 
-  const res = await fetch(`/api/upload-default?filename=${encodeURIComponent(filename)}`, { method: 'POST' });
+  const res = await fetch(apiUrl(`/api/upload-default?filename=${encodeURIComponent(filename)}`), { method: 'POST' });
   if (!res.ok) { alert('Failed to load dataset'); return; }
   const data = await res.json();
 
@@ -719,7 +745,7 @@ async function handleFile(file) {
   document.querySelectorAll('.dataset-item').forEach(el => el.classList.remove('selected'));
   const form = new FormData();
   form.append('file', file);
-  const res  = await fetch('/api/upload', { method: 'POST', body: form });
+  const res  = await fetch(apiUrl('/api/upload'), { method: 'POST', body: form });
   if (!res.ok) { alert((await res.json()).detail); return; }
   const data = await res.json();
   zone.classList.add('done');
@@ -763,7 +789,7 @@ async function startTraining() {
   document.getElementById('gen-output').innerHTML = '';
   document.getElementById('log-count').textContent = '0 entries';
 
-  const res = await fetch('/api/train', {
+  const res = await fetch(apiUrl('/api/train'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -778,8 +804,7 @@ async function startTraining() {
 
 // ── WebSocket ──────────────────────────────────
 function connectWS() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/api/ws/loss`);
+  ws = new WebSocket(wsUrl('/api/ws/loss'));
   ws.onmessage = e => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'loss') onLoss(msg);
