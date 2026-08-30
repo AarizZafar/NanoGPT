@@ -168,10 +168,59 @@ function App() {
   const canTrain = useMemo(() => hasDataset && !invalidShape && status !== 'training', [hasDataset, invalidShape, status]);
 
   useEffect(() => {
-    apiRequest('/datasets')
-      .then((data) => setDatasets(data.datasets || []))
-      .catch((err) => setError(err.message));
+    let cancelled = false;
+
+    async function loadInitialState() {
+      try {
+        const [datasetData, statusData] = await Promise.all([
+          apiRequest('/datasets'),
+          apiRequest('/status'),
+        ]);
+
+        if (cancelled) return;
+
+        setDatasets(datasetData.datasets || []);
+        restoreTrainingState(statusData);
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      }
+    }
+
+    loadInitialState();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  function appendLossPoint(point) {
+    setPoints((current) => {
+      const lastPoint = current.at(-1);
+      if (lastPoint?.epoch === point.epoch) {
+        return [...current.slice(0, -1), point];
+      }
+      return [...current, point];
+    });
+  }
+
+  function restoreTrainingState(statusData) {
+    if (statusData.vocab_size) setVocabSize(statusData.vocab_size);
+    if (statusData.dataset_name) {
+      setSelectedDataset(statusData.dataset_name);
+      setFileMeta('');
+    }
+    if (statusData.train_config && Object.keys(statusData.train_config).length > 0) {
+      setParams((current) => ({
+        ...current,
+        ...statusData.train_config,
+        learning_rate: Math.log10(statusData.train_config.learning_rate || Math.pow(10, current.learning_rate)),
+      }));
+    }
+    setPoints(statusData.loss_history || []);
+    setGeneratedText(statusData.generated_text || '');
+    setStatus(statusData.training ? 'training' : statusData.has_model ? 'ready' : 'idle');
+    if (statusData.training) connectTrainingStream();
+  }
 
   function updateParam(key, value) {
     setParams((current) => ({ ...current, [key]: value }));
@@ -220,7 +269,7 @@ function App() {
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      if (message.type === 'loss') setPoints((current) => [...current, message]);
+      if (message.type === 'loss') appendLossPoint(message);
       if (message.type === 'text') setGeneratedText(message.text);
       if (message.type === 'done') {
         completed = true;
@@ -281,6 +330,14 @@ function App() {
       const currentSocket = socketRef.current;
       socketRef.current = null;
       currentSocket?.close();
+      if (err.message === 'Training already running') {
+        try {
+          restoreTrainingState(await apiRequest('/status'));
+          return;
+        } catch {
+          // Keep the original training error if status recovery also fails.
+        }
+      }
       setStatus('idle');
       setError(err.message);
     }

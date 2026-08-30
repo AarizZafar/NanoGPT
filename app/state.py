@@ -1,14 +1,18 @@
-from typing import Optional 
+from typing import Optional
 from app.core.model import BigramLanguageModel
 from app.core.generator import Generator
 from app.utils.tokenizer import Tokenizer
 
 class AppState:
-    tokenizer           : Optional[Tokenizer]            = None
-    model               : Optional[BigramLanguageModel]  = None
-    generator           : Optional[Generator]            = None
-    training            : bool                           = False
-    text                : Optional[str]                  = None
+    tokenizer: Optional[Tokenizer] = None
+    model: Optional[BigramLanguageModel] = None
+    generator: Optional[Generator] = None
+    training: bool = False
+    text: Optional[str] = None
+    dataset_name: Optional[str] = None
+    loss_history: list[dict] = []
+    generated_text: str = ""
+    train_config: dict = {}
 
 state = AppState()
 

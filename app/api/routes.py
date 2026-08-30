@@ -59,6 +59,10 @@ async def upload_default(filename: str):
     text = path.read_text(encoding="utf-8")
     state.text = text
     state.tokenizer = Tokenizer(text)
+    state.dataset_name = filename
+    state.loss_history = []
+    state.generated_text = ""
+    state.train_config = {}
     return {"vocab_size": state.tokenizer.vocab_size, "chars": len(text), "name": filename}
 
 @router.post("/upload")
@@ -75,6 +79,10 @@ async def upload(file:UploadFile = File(...)):
 
     state.text = text
     state.tokenizer = Tokenizer(text)
+    state.dataset_name = file.filename
+    state.loss_history = []
+    state.generated_text = ""
+    state.train_config = {}
     return {"vocab_size" : state.tokenizer.vocab_size, "chars" : len(text)}
 
 @router.post("/train")
@@ -115,6 +123,9 @@ async def train(req:TrainRequest):                             # already running
     state.model       = model
     state.generator   = Generator(model, tokenizer, device)
     state.training    = True
+    state.loss_history = []
+    state.generated_text = ""
+    state.train_config = req.model_dump()
 
     trainer = Trainer(
         model         = model,
@@ -128,11 +139,14 @@ async def train(req:TrainRequest):                             # already running
     )
 
     def on_eval(epoch: int, train_loss: float, val_loss: float):
+        loss_event = {"epoch": epoch, "train_loss": round(train_loss, 4), "val_loss": round(val_loss, 4)}
+        state.loss_history.append(loss_event)
         asyncio.run_coroutine_threadsafe(
-            manager.broadcast({"type": "loss", "epoch": epoch, "train_loss": round(train_loss, 4), "val_loss": round(val_loss, 4)}),
+            manager.broadcast({"type": "loss", **loss_event}),
             _loop,
         )
         text = state.generator.generate(max_new_tokens=req.max_new_tokens)
+        state.generated_text = text
         asyncio.run_coroutine_threadsafe(
             manager.broadcast({"type": "text", "text": text}),
             _loop,
@@ -168,6 +182,10 @@ async def status():
         "has_model":  state.model is not None,
         "has_text":   state.text is not None,
         "vocab_size": state.tokenizer.vocab_size if state.tokenizer else None,
+        "dataset_name": state.dataset_name,
+        "loss_history": state.loss_history,
+        "generated_text": state.generated_text,
+        "train_config": state.train_config,
     }
 
 @router.websocket('/ws/loss')
