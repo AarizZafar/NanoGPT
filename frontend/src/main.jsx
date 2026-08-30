@@ -357,6 +357,8 @@ function App() {
               <input type="range" min="0" max="0.5" step="0.05" value={params.dropout} onChange={(event) => updateParam('dropout', event.target.value)} />
             </label>
 
+            <p className="param-note">Embedding Dim must be divisible by Heads.</p>
+
             <button className="train-button" disabled={!canTrain} onClick={startTraining}>
               {status === 'training' ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
               <span>{status === 'training' ? 'Training' : 'Start Training'}</span>

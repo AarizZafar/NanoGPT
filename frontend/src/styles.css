@@ -343,6 +343,13 @@ button {
   font-size: 12px;
 }
 
+.param-note {
+  margin: 12px 18px 0;
+  color: #64748b;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
 .slider-field {
   margin: 12px 18px 0;
 }
