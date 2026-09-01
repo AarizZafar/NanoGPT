@@ -101,7 +101,7 @@ This runbook does not implement automatic update `Azure Container APP`for which 
 What this runbook implementation does - 
 ```text
 GitHub Actions pushes the Docker image to Docker Hub.           (Till here the automation takes place).
-Azure Container Apps is updated manually to pull the new image. (can update CPU/RAM for the change to take place). 
+Azure Container Apps is updated manually to pull the new image. If any backend changes are done then only -> (can update CPU/RAM for the change to take place). 
 ```
 
 ---
