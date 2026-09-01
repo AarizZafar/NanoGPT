@@ -16,14 +16,10 @@ static_assets = frontend_dist / "assets"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost",
         "http://localhost:5173",
-        "http://localhost:8000",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:8000",
-        "https://cae-nanogpt-prod.happyisland-c2178764.eastus.azurecontainerapps.io",
+        "https://gentle-ocean-01208a90f.7.azurestaticapps.net",
     ],
-    allow_origin_regex=r"https://.*\.azurestaticapps\.net",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
