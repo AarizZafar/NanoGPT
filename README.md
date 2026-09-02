@@ -1,6 +1,8 @@
 
 # NanoGPT
 
+### This branch has been developed to run the code on an Azure VM
+
 A character-level Transformer language model with a production-grade deployment pipeline.
 Train GPT-style models on any text dataset through a live web UI runs locally or on the cloud with full CI/CD automation.
 
