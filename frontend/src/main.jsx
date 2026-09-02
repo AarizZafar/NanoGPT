@@ -8,10 +8,18 @@ import {
   Check,
   CircleDot,
   Code2,
+  Cpu,
+  Database,
   FileText,
+  Gauge,
+  Hash,
+  Layers3,
   Loader2,
   Play,
   Settings2,
+  Sparkles,
+  TerminalSquare,
+  TimerReset,
   Upload,
   Zap,
 } from 'lucide-react';
@@ -48,6 +56,74 @@ const datasetIcons = {
   'rich_dad_poor_dad.txt': Zap,
   'law_of_human_nature.txt': Brain,
 };
+
+const trainingPresets = {
+  quick: {
+    label: 'Quick',
+    description: 'Fast sanity check',
+    values: {
+      block_size: 32,
+      batch_size: 32,
+      n_embd: 64,
+      n_head: 4,
+      n_layer: 4,
+      max_iters: 1200,
+      eval_interval: 100,
+      max_new_tokens: 180,
+      learning_rate: -2.5,
+      dropout: 0.2,
+    },
+  },
+  balanced: {
+    label: 'Balanced',
+    description: 'Default training run',
+    values: initialParams,
+  },
+  deeper: {
+    label: 'Deeper',
+    description: 'More capacity',
+    values: {
+      ...initialParams,
+      block_size: 64,
+      batch_size: 24,
+      n_embd: 128,
+      n_head: 4,
+      n_layer: 6,
+      max_iters: 8000,
+      eval_interval: 250,
+      dropout: 0.15,
+    },
+  },
+};
+
+const paramGroups = [
+  {
+    title: 'Sequence',
+    icon: Hash,
+    fields: [
+      ['block_size', 'Block Size', 8, 512],
+      ['batch_size', 'Batch Size', 4, 256],
+    ],
+  },
+  {
+    title: 'Model Shape',
+    icon: Layers3,
+    fields: [
+      ['n_embd', 'Embedding Dim', 16, 512],
+      ['n_head', 'Heads', 1, 16],
+      ['n_layer', 'Layers', 1, 12],
+    ],
+  },
+  {
+    title: 'Runtime',
+    icon: TimerReset,
+    fields: [
+      ['max_iters', 'Max Iters', 100, 100000],
+      ['eval_interval', 'Eval Interval', 50, 1000],
+      ['max_new_tokens', 'Generate Tokens', 50, 2000],
+    ],
+  },
+];
 
 function friendlyName(filename) {
   return filename.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -125,20 +201,34 @@ function useLossChart(canvasRef, points) {
   }, [points]);
 }
 
-function Stat({ label, value }) {
+function StatusIcon({ status }) {
+  if (status === 'training') return <Loader2 size={16} className="spin" />;
+  if (status === 'ready') return <Check size={16} />;
+  return <CircleDot size={16} />;
+}
+
+function Stat({ label, value, icon: Icon }) {
   return (
     <div className="stat">
+      {Icon && <Icon size={16} />}
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
   );
 }
 
-function Field({ label, value, onChange, min, max }) {
+function Field({ label, value, onChange, min, max, compact = false }) {
   return (
-    <label className="field">
+    <label className={`field ${compact ? 'compact' : ''}`}>
       <span>{label}</span>
-      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }
@@ -149,6 +239,7 @@ function App() {
   const [fileMeta, setFileMeta] = useState('');
   const [vocabSize, setVocabSize] = useState(null);
   const [params, setParams] = useState(initialParams);
+  const [activePreset, setActivePreset] = useState('balanced');
   const [points, setPoints] = useState([]);
   const [generatedText, setGeneratedText] = useState('');
   const [status, setStatus] = useState('idle');
@@ -164,8 +255,12 @@ function App() {
   const hasDataset = Boolean(vocabSize);
   const invalidShape = Number(params.n_embd) % Number(params.n_head) !== 0;
   const progress = latestPoint ? `${((latestPoint.epoch / Number(params.max_iters)) * 100).toFixed(1)}%` : '-';
+  const progressValue = latestPoint ? Math.min((latestPoint.epoch / Number(params.max_iters)) * 100, 100) : 0;
   const learningRate = Math.pow(10, Number(params.learning_rate));
   const canTrain = useMemo(() => hasDataset && !invalidShape && status !== 'training', [hasDataset, invalidShape, status]);
+  const selectedDatasetLabel = fileMeta || (selectedDataset ? friendlyName(selectedDataset) : 'No corpus selected');
+  const statusText = status === 'training' ? 'Training in progress' : status === 'ready' ? 'Model ready' : 'Waiting for setup';
+  const modelShape = `${params.n_layer}L / ${params.n_head}H / ${params.n_embd}D`;
 
   useEffect(() => {
     let cancelled = false;
@@ -223,7 +318,13 @@ function App() {
   }
 
   function updateParam(key, value) {
+    setActivePreset('custom');
     setParams((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyPreset(presetKey) {
+    setActivePreset(presetKey);
+    setParams((current) => ({ ...current, ...trainingPresets[presetKey].values }));
   }
 
   async function selectDataset(filename) {
@@ -354,7 +455,9 @@ function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark">N</div>
+          <div className="brand-mark">
+            <Brain size={22} />
+          </div>
           <div>
             <h1>NanoGPT Training Studio</h1>
             <p>Character-level transformer training workspace</p>
@@ -366,8 +469,8 @@ function App() {
             <span>AarizZafar/NanoGPT</span>
           </a>
           <div className={`status-pill ${status}`}>
-            {status === 'training' ? <Loader2 size={16} className="spin" /> : <CircleDot size={16} />}
-            <span>{status}</span>
+            <StatusIcon status={status} />
+            <span>{statusText}</span>
           </div>
         </div>
       </header>
@@ -380,10 +483,38 @@ function App() {
       )}
 
       <main className="workspace">
+        <section className="overview-strip" aria-label="Training overview">
+          <div className="overview-item">
+            <Database size={18} />
+            <span>Dataset</span>
+            <strong>{selectedDatasetLabel}</strong>
+          </div>
+          <div className="overview-item">
+            <Cpu size={18} />
+            <span>Model</span>
+            <strong>{modelShape}</strong>
+          </div>
+          <div className="overview-item">
+            <Gauge size={18} />
+            <span>Learning Rate</span>
+            <strong>{learningRate.toExponential(1)}</strong>
+          </div>
+          <div className="overview-progress">
+            <span>Run Progress</span>
+            <strong>{progress}</strong>
+            <div className="progress-track">
+              <i style={{ width: `${progressValue}%` }} />
+            </div>
+          </div>
+        </section>
+
         <section className="side-stack">
           <div className="panel">
             <div className="panel-heading">
-              <h2>Dataset</h2>
+              <div>
+                <h2>Dataset</h2>
+                <p>Choose a corpus or upload your own text.</p>
+              </div>
               {vocabSize && <span className="badge">vocab {vocabSize}</span>}
             </div>
 
@@ -401,7 +532,7 @@ function App() {
                 uploadFile(event.dataTransfer.files[0]);
               }}
             >
-              <Upload size={26} />
+              <span className="drop-icon"><Upload size={24} /></span>
               <span>Drop a text file or browse</span>
               <small>{fileMeta || 'UTF-8 .txt corpus'}</small>
             </button>
@@ -428,18 +559,54 @@ function App() {
 
           <div className="panel">
             <div className="panel-heading">
-              <h2>Hyperparameters</h2>
+              <div>
+                <h2>Hyperparameters</h2>
+                <p>Tune model shape, runtime, and regularization.</p>
+              </div>
               <Settings2 size={18} />
             </div>
-            <div className="params-grid">
-              <Field label="Block Size" min="8" max="512" value={params.block_size} onChange={(value) => updateParam('block_size', value)} />
-              <Field label="Batch Size" min="4" max="256" value={params.batch_size} onChange={(value) => updateParam('batch_size', value)} />
-              <Field label="Embedding Dim" min="16" max="512" value={params.n_embd} onChange={(value) => updateParam('n_embd', value)} />
-              <Field label="Heads" min="1" max="16" value={params.n_head} onChange={(value) => updateParam('n_head', value)} />
-              <Field label="Layers" min="1" max="12" value={params.n_layer} onChange={(value) => updateParam('n_layer', value)} />
-              <Field label="Max Iters" min="100" max="100000" value={params.max_iters} onChange={(value) => updateParam('max_iters', value)} />
-              <Field label="Eval Interval" min="50" max="1000" value={params.eval_interval} onChange={(value) => updateParam('eval_interval', value)} />
-              <Field label="Generate Tokens" min="50" max="2000" value={params.max_new_tokens} onChange={(value) => updateParam('max_new_tokens', value)} />
+
+            <div className="preset-bar" aria-label="Training presets">
+              {Object.entries(trainingPresets).map(([key, preset]) => (
+                <button
+                  type="button"
+                  className={activePreset === key ? 'selected' : ''}
+                  aria-pressed={activePreset === key}
+                  key={key}
+                  onClick={() => applyPreset(key)}
+                >
+                  <Sparkles size={15} />
+                  <span>{preset.label}</span>
+                  <small>{preset.description}</small>
+                </button>
+              ))}
+            </div>
+
+            <div className="params-stack">
+              {paramGroups.map((group) => {
+                const Icon = group.icon;
+                return (
+                  <div className="param-group" key={group.title}>
+                    <div className="param-group-title">
+                      <Icon size={16} />
+                      <span>{group.title}</span>
+                    </div>
+                    <div className="params-grid">
+                      {group.fields.map(([key, label, min, max]) => (
+                        <Field
+                          compact
+                          key={key}
+                          label={label}
+                          min={min}
+                          max={max}
+                          value={params[key]}
+                          onChange={(value) => updateParam(key, value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {invalidShape && <p className="inline-error">Embedding Dim must be divisible by Heads.</p>}
@@ -453,7 +620,7 @@ function App() {
               <input type="range" min="0" max="0.5" step="0.05" value={params.dropout} onChange={(event) => updateParam('dropout', event.target.value)} />
             </label>
 
-            <p className="param-note">Embedding Dim must be divisible by Heads.</p>
+            <p className="param-note">Preflight: select a corpus, keep embedding divisible by heads, then start the run.</p>
 
             <button className="train-button" disabled={!canTrain} onClick={startTraining}>
               {status === 'training' ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
@@ -465,17 +632,20 @@ function App() {
         <section className="main-stack">
           <div className="panel chart-panel">
             <div className="panel-heading">
-              <h2>Training Loss</h2>
+              <div>
+                <h2>Training Loss</h2>
+                <p>Live train and validation loss from the websocket stream.</p>
+              </div>
               <div className="legend">
                 <span><i className="train-line" />Train</span>
                 <span><i className="val-line" />Val</span>
               </div>
             </div>
             <div className="stats-grid">
-              <Stat label="Step" value={latestPoint?.epoch ?? '-'} />
-              <Stat label="Train Loss" value={latestPoint ? latestPoint.train_loss.toFixed(4) : '-'} />
-              <Stat label="Val Loss" value={latestPoint ? latestPoint.val_loss.toFixed(4) : '-'} />
-              <Stat label="Progress" value={progress} />
+              <Stat icon={TimerReset} label="Step" value={latestPoint?.epoch ?? '-'} />
+              <Stat icon={Activity} label="Train Loss" value={latestPoint ? latestPoint.train_loss.toFixed(4) : '-'} />
+              <Stat icon={BarChart3} label="Val Loss" value={latestPoint ? latestPoint.val_loss.toFixed(4) : '-'} />
+              <Stat icon={Gauge} label="Progress" value={progress} />
             </div>
             <div className="chart-wrap">
               <canvas ref={canvasRef} />
@@ -485,7 +655,10 @@ function App() {
           <div className="detail-grid">
             <div className="panel">
               <div className="panel-heading">
-                <h2>Loss Log</h2>
+                <div>
+                  <h2>Loss Log</h2>
+                  <p>Each evaluation checkpoint, newest at bottom.</p>
+                </div>
                 <span className="badge">{points.length} entries</span>
               </div>
               <div className="log-pane">
@@ -508,9 +681,12 @@ function App() {
 
             <div className="panel">
               <div className="panel-heading">
-                <h2>Generated Text</h2>
+                <div>
+                  <h2>Generated Text</h2>
+                  <p>Sample output updates as training produces text.</p>
+                </div>
                 <span className="badge accent">
-                  <Activity size={13} />
+                  <TerminalSquare size={13} />
                   live
                 </span>
               </div>
@@ -523,4 +699,7 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+const rootElement = document.getElementById('root');
+const root = rootElement.__nanoGptRoot || createRoot(rootElement);
+rootElement.__nanoGptRoot = root;
+root.render(<App />);
