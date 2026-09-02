@@ -1,171 +1,93 @@
+# BPE Tokenizer
 
-# NanoGPT
-
-A character-level Transformer language model with a production-grade deployment pipeline.
-Train GPT-style models on any text dataset through a live web UI runs locally or on the cloud with full CI/CD automation.
-
-## What This Is
-
-NanoGPT implements the core Transformer architecture (multi-head self-attention, positional embeddings, feed-forward layers) from scratch in PyTorch. It is served through a FastAPI backend with real-time WebSocket streaming, containerised with Docker, reverse-proxied through Nginx, deployed on an Azure Virtual Machine, and automatically rebuilt and redeployed on every Git push via a Jenkins CI/CD pipeline.
-
-The UI lets you upload any `.txt` corpus, tune hyperparameters, watch the loss curve update live during training, and see the model generate text in real time — all from the browser.
-
-## Deployment Diagram
-
-![Architecture Diagram](images/End_end_architecture_diagram.jpg)
-
----
+A small full-stack project for exploring Byte Pair Encoding (BPE). The app lets you select a text corpus, train a tokenizer, inspect merges/vocabulary, and test encode/decode behavior from the browser.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Model | PyTorch Transformer (attention, embeddings, feed-forward) |
-| API | FastAPI + Uvicorn (ASGI, async, WebSocket) |
-| Reverse Proxy | Nginx (SSL termination, WebSocket upgrade, port routing) |
-| Containerisation | Docker + Docker Compose |
-| Cloud | **Microsoft Azure** Ubuntu VM, public IP, NSG port rules |
-| CI/CD | **Jenkins** pipeline triggered by GitHub webhook on every push |
-| Package Manager | uv |
-| Frontend | Vanilla JS, Chart.js, WebSocket (single HTML file, no framework) |
+- FastAPI backend
+- React + Vite frontend
+- Docker / Docker Compose
+- Azure Static Web Apps + Azure Container Apps deployment branch
 
----
+## Project Structure
 
-## CI/CD Pipeline — Azure + Jenkins
-
-Every `git push` to `main` triggers an automated deployment:
-
-```
-git push
-    → GitHub webhook fires
-        → Jenkins (running on Azure VM) receives trigger
-            → pulls latest code from GitHub
-            → stops old Docker containers
-            → rebuilds Docker image
-            → spins up new containers (app + nginx)
-            → health check passes
-                → live on http://<azure-vm-ip>
+```text
+app/                  FastAPI backend
+frontend/             React frontend
+artifacts/            Text datasets used for tokenizer training
+nginx/                Optional nginx config/docker setup
+Dockerfile            Container image for the app
+docker-compose.yml    Local Docker run configuration
+pyproject.toml        Python project dependencies
 ```
 
-Jenkins runs inside a Docker container on the Azure VM with the host Docker socket mounted — giving it full ability to build and manage containers on the host without any additional agents.
+## Run Locally
 
----
+From the project root:
 
-## Folder Structure
-
-```
-nanogpt/
-├── app/
-│   ├── api/
-│   │   ├── routes.py          # /upload, /train, /generate, /status, WS /ws/loss
-│   │   └── websocket.py       # WebSocket connection manager (broadcast to all clients)
-│   ├── core/
-│   │   ├── embeddings.py      # Token + positional embeddings
-│   │   ├── layers.py          # Head, MultiHeadAttention, FeedForward, Block
-│   │   ├── model.py           # BigramLanguageModel
-│   │   ├── trainer.py         # Training loop with on_eval callback hook
-│   │   └── generator.py       # Text generation wrapper
-│   ├── schemas/
-│   │   └── train_schema.py    # Pydantic request validation
-│   ├── utils/
-│   │   └── tokenizer.py       # Character-level vocab, encode, decode
-│   ├── state.py               # Global in-memory app state
-│   └── main.py                # FastAPI app entrypoint
-│
-├── frontend/
-│   └── index.html             # Single-file UI (Chart.js, WebSocket, hyperparameter form)
-│
-├── training_data_corpus/      # Default datasets (Shakespeare, Rich Dad Poor Dad, Law of Human Nature)
-│
-├── nginx/
-│   └── nginx.conf             # Reverse proxy config (WebSocket upgrade, API routing)
-│
-├── Dockerfile                 # Python 3.11-slim, uv install, uvicorn entrypoint
-├── docker-compose.yml         # app + nginx services on a shared bridge network
-├── Jenkinsfile                # Declarative pipeline (clone → stop → build → health check)
-└── pyproject.toml             # uv-managed dependencies
+```powershell
+uv sync
+uv run app/main.py
 ```
 
----
+Open:
 
-## Running Locally
-
-**Without Docker:**
-```bash
-uv pip install -r pyproject.toml
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-Open `http://localhost:8000`
-
-**With Docker (full stack — app + nginx):**
-```bash
-docker compose up --build -d
-```
-Open `http://localhost`
-
-## How It Works
-
-1. Upload a `.txt` file (or pick a default dataset)
-2. Set hyperparameters — block size, embedding dim, heads, layers, learning rate
-3. Click **Start Training**
-4. Watch the loss graph update live via WebSocket every eval interval
-5. Generated text appears on screen as the model learns
-
-The training loop runs in a background thread. Every N steps it pushes `{epoch, train_loss, val_loss}` and a sample of generated text over WebSocket to all connected browser clients.
-
-## Running the Application locally
-
-### Start (detached — terminal can be closed)
-```bash
-docker compose up --build -d
+```text
+http://127.0.0.1:8001
 ```
 
-### View logs / print statements separate terminal
-```bash
-docker compose logs -f app
-```
-`-f` follows live logs. Press `Ctrl+C` to exit - the container keeps running.
+## Run Frontend And Backend Separately
 
-### View nginx logs
-```bash
-docker compose logs nginx
+Backend:
+
+```powershell
+uv run app/main.py
 ```
 
-### Stop the container (keeps images)
-```bash
-docker compose stop
+Frontend:
+
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
 
-### Start again (no rebuild)
-```bash
-docker compose start
+Open the Vite URL shown in the terminal, usually:
+
+```text
+http://localhost:5173
 ```
 
-### Delete this project's containers, images, and network
-```bash
-docker compose down --rmi local
+## Run With Docker
+
+```powershell
+docker compose up --build
 ```
 
-### Run locally (without Docker)
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+Open:
+
+```text
+http://localhost:8001
 ```
 
-### Access the app
-Open [http://localhost/](http://localhost/) in your web browser.
+## Run Tests
 
-### Rebuilding
-If you need to rebuild after making changes:
-```bash
-docker compose down
-docker compose up --build -d
+```powershell
+python -m pytest -v
 ```
 
----
+or, if `uv` is working correctly:
 
-### Command reference
+```powershell
+uv run pytest -v
+```
 
-| Command | Effect |
-|---|---|
-| `down` | Stops and removes containers and network. Images stay on disk. |
-| `down --rmi local` | Same as above, plus removes images built from this project's Dockerfile only. Frees disk space, but the next `up --build` will download/build everything again. Other Docker images are left untouched. |
+## Deployment Notes
+
+This branch is for the Azure Static Web Apps + Azure Container Apps + Docker Hub deployment flow.
+
+- Frontend is hosted on Azure Static Web Apps.
+- Backend API runs as a Docker container on Azure Container Apps.
+- Docker image is pushed to Docker Hub.
+- GitHub Actions can automate image builds and frontend deployment.
+
