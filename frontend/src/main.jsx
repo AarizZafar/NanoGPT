@@ -7,6 +7,7 @@ import {
   Brain,
   Check,
   CircleDot,
+  Cloud,
   Code2,
   Cpu,
   Database,
@@ -18,6 +19,7 @@ import {
   Play,
   Settings2,
   Sparkles,
+  Server,
   TerminalSquare,
   TimerReset,
   Upload,
@@ -125,6 +127,25 @@ const paramGroups = [
   },
 ];
 
+const warmupSteps = [
+  {
+    label: 'Scale request received',
+    detail: 'Azure Container Apps is moving the FastAPI service from 0 to 1 replica.',
+  },
+  {
+    label: 'Container runtime starting',
+    detail: 'Python, PyTorch, tokenizer state, and API routes are coming online.',
+  },
+  {
+    label: 'Dataset endpoint check',
+    detail: 'Waiting for /api/datasets to return the bundled training corpora.',
+  },
+  {
+    label: 'Almost there',
+    detail: 'Once the health and dataset calls pass, the training studio opens automatically.',
+  },
+];
+
 function friendlyName(filename) {
   return filename.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -137,7 +158,7 @@ function useLossChart(canvasRef, points) {
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return undefined;
+    if (!canvasRef.current || chartRef.current) return;
 
     chartRef.current = new ChartJS(canvasRef.current, {
       type: 'line',
@@ -188,9 +209,12 @@ function useLossChart(canvasRef, points) {
         },
       },
     });
+  });
 
-    return () => chartRef.current?.destroy();
-  }, [canvasRef]);
+  useEffect(() => () => {
+    chartRef.current?.destroy();
+    chartRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -233,7 +257,90 @@ function Field({ label, value, onChange, min, max, compact = false }) {
   );
 }
 
+function WarmupScreen({ elapsedSeconds, attempt }) {
+  const activeStep = Math.min(Math.floor(elapsedSeconds / 5), warmupSteps.length - 1);
+  const progress = Math.min(18 + elapsedSeconds * 4, 92);
+  const statusLine = elapsedSeconds > 18
+    ? 'Almost there - Azure is finishing the cold start.'
+    : 'Waking the zero-replica backend.';
+
+  return (
+    <main className="warmup-shell" aria-live="polite">
+      <section className="warmup-card">
+        <div className="warmup-visual" aria-hidden="true">
+          <div className="cloud-node">
+            <Cloud size={34} />
+          </div>
+          <div className="data-rail">
+            <i />
+            <i />
+            <i />
+          </div>
+          <div className="container-stack">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="replica-meter">
+            <b>0</b>
+            <i />
+            <b>1</b>
+          </div>
+        </div>
+
+        <div className="warmup-content">
+          <div className="warmup-kicker">
+            <Server size={16} />
+            Azure Container Apps cold start
+          </div>
+          <h1>Warming up the NanoGPT API</h1>
+          <p>
+            This project scales the backend down to zero replicas when idle. The first visitor wakes the container,
+            loads the corpus routes, and then the studio opens with the default datasets ready.
+          </p>
+
+          <div className="aca-facts" aria-label="Azure Container Apps scale settings">
+            <span>min replicas <strong>0</strong></span>
+            <span>max replicas <strong>1</strong></span>
+            <span>probe <strong>/api/datasets</strong></span>
+          </div>
+
+          <div className="warmup-progress">
+            <div>
+              <span>{statusLine}</span>
+              <strong>{elapsedSeconds}s</strong>
+            </div>
+            <div className="warmup-track">
+              <i style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="warmup-steps">
+            {warmupSteps.map((step, index) => (
+              <div className={`warmup-step ${index < activeStep ? 'done' : ''} ${index === activeStep ? 'active' : ''}`} key={step.label}>
+                <span>{index < activeStep ? <Check size={14} /> : index + 1}</span>
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="warmup-footer">
+            <Loader2 size={16} className="spin" />
+            <span>Backend readiness check #{attempt}</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function App() {
+  const [bootState, setBootState] = useState('warming');
+  const [warmupElapsed, setWarmupElapsed] = useState(0);
+  const [startupAttempt, setStartupAttempt] = useState(1);
   const [datasets, setDatasets] = useState([]);
   const [selectedDataset, setSelectedDataset] = useState('');
   const [fileMeta, setFileMeta] = useState('');
@@ -248,6 +355,7 @@ function App() {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const socketRef = useRef(null);
+  const warmupStartedRef = useRef(Date.now());
 
   useLossChart(canvasRef, points);
 
@@ -264,9 +372,14 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer;
+    const elapsedTimer = window.setInterval(() => {
+      setWarmupElapsed(Math.floor((Date.now() - warmupStartedRef.current) / 1000));
+    }, 1000);
 
-    async function loadInitialState() {
+    async function loadInitialState(attempt = 1) {
       try {
+        setStartupAttempt(attempt);
         const [datasetData, statusData] = await Promise.all([
           apiRequest('/datasets'),
           apiRequest('/status'),
@@ -276,8 +389,13 @@ function App() {
 
         setDatasets(datasetData.datasets || []);
         restoreTrainingState(statusData);
+        setError('');
+        setBootState('ready');
       } catch (err) {
-        if (!cancelled) setError(err.message);
+        if (cancelled) return;
+        setBootState('warming');
+        const retryDelay = Math.min(2200 + attempt * 450, 5000);
+        retryTimer = window.setTimeout(() => loadInitialState(attempt + 1), retryDelay);
       }
     }
 
@@ -285,6 +403,8 @@ function App() {
 
     return () => {
       cancelled = true;
+      window.clearInterval(elapsedTimer);
+      window.clearTimeout(retryTimer);
     };
   }, []);
 
@@ -450,6 +570,10 @@ function App() {
       socketRef.current = null;
     };
   }, []);
+
+  if (bootState !== 'ready') {
+    return <WarmupScreen elapsedSeconds={warmupElapsed} attempt={startupAttempt} />;
+  }
 
   return (
     <div className="app-shell">
